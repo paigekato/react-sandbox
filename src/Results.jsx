@@ -1,6 +1,8 @@
 import React from "react";
 import pf from "petfinder-client";
+import { Consumer } from "./SearchContext";
 import Pet from "./Pet"; // no quote is defaul export
+import SearchBox from "./SearchBox"; // no quote is defaul export
 
 const petfinder = pf({
   key: process.env.API_KEY,
@@ -19,14 +21,15 @@ class Results extends React.Component {
     };
   }
 
-  // Loading State
-  componentDidMount() {
+  search() {
     petfinder.pet.find({
       output: "full",
-      location: "Seattle, WA",
+      location: this.props.searchParams.location,
+      animal: this.props.searchParams.animal,
+      breed: this.props.searchParams.breed
     }).then(data => {
       let pets;
-
+  
       // Make sure it exists
       if (data.petfinder.pets && data.petfinder.pets.pet) {
         if (Array.isArray(data.petfinder.pets.pet)) {
@@ -37,12 +40,16 @@ class Results extends React.Component {
       }  else {
         pets = [];
       }
-
+  
       // React is smart about updates; can call multuple times
       // shallow merge; won't overwrite
       //same same as pets: pest
       this.setState({ pets, loading: false }) 
     })
+  }
+  // Loading State
+  componentDidMount() {
+    this.search();
   }
 
   render() {
@@ -55,6 +62,7 @@ class Results extends React.Component {
     } else {
       return (
         <div className="search">
+          <SearchBox search={this.search} />
           {this.state.pets.map(pet => {
             let breed;
   
@@ -78,4 +86,12 @@ class Results extends React.Component {
   }
 }
 
-export default Results;
+// Named function makes easier to debug in callstack
+// Necessary if you need to reference in lifecycle method
+export default function ResultsWithContext(props) {
+  return (
+    <Consumer>
+      {context => <Results {...props} searchParams={context} /> }
+    </Consumer>
+  );
+};
